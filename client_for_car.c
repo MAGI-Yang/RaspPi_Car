@@ -203,15 +203,16 @@ int main()
     }
 
     if((pid = fork()) != 0){
-        while(fgets(buf, BUF_SIZE, stdin) != NULL)  //父进程，处理读标准输入，并发数据
+        while(fgets(buf, BUF_SIZE, stdin) != NULL)
+			//父进程，处理读标准输入，并发数据 Parent process, Get input and send the messages.
         {           write(socketfd, buf, strlen(buf) - 1);
         }
-        if(kill(pid, SIGUSR1) < 0)  //结束子进程
+        if(kill(pid, SIGUSR1) < 0)  //结束子进程 End of child process
         {
             perror("Kill error");
         }
     }else{
-        while((type = read(socketfd, buf, BUF_SIZE - 1)) > 0){  //子进程，接收数据，并输出
+        while((type = read(socketfd, buf, BUF_SIZE - 1)) > 0){  //子进程，接收数据，并输出 child process
             buf[type] = '\0';
             car_com(buf);
             printf("%s\n", buf);

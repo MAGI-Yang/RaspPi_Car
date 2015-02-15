@@ -33,8 +33,9 @@ int main()
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(SERVER_PORT);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);    //允许地址重用，不需要等待TIME_WAIT，1为可重用，0为不可
-    setsockopt( listen_fd, SOL_SOCKET, SO_REUSEADDR, &len, sizeof(len) );
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);    
+	//允许地址重用，不需要等待TIME_WAIT，1为可重用，0为不可
+	setsockopt( listen_fd, SOL_SOCKET, SO_REUSEADDR, &len, sizeof(len) );
 
     if(bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0){
         printf("Bind Error: %s.\n\a", strerror(errno));
@@ -46,8 +47,8 @@ int main()
     socklen_t saddrlen = sizeof(saddr);
     printf("Server is started !\n");
 
-    fd_set master;      //主要的端口列表
-    fd_set read_fds;    //临时的端口列表
+    fd_set master;      //主要的端口列表 Master port list
+    fd_set read_fds;    //临时的端口列表 Temp port list
     int fdmax, i, newfd, j;
     char buf[BUF_SIZE + 1];
     char ip_buf1[30]="none\0";
@@ -56,7 +57,7 @@ int main()
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
     FD_SET(listen_fd, &master);
-    fdmax = listen_fd;  //现在只有一个监听的
+    fdmax = listen_fd;  //现在只有一个监听的 Only one listerner now
     while(1){
         read_fds = master;
         if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1){
@@ -64,15 +65,15 @@ int main()
             exit(1);
         }
 
-        for(i = 0; i <= fdmax; i++){    //遍历所有连接，读取数据
-            if(FD_ISSET(i, &read_fds)){ //有数据可读
-                if(i == listen_fd){ //从监听端口来的
+        for(i = 0; i <= fdmax; i++){    //遍历所有连接，读取数据 Traverse all connection and read data
+            if(FD_ISSET(i, &read_fds)){ //有数据可读 If data is not null
+                if(i == listen_fd){ //从监听端口来的 Get from listner port
                     if((newfd = accept(listen_fd, (struct sockaddr *)&saddr, &saddrlen)) == -1){
                         perror("Server-accept() error");
                     }else{
-                        FD_SET(newfd, &master);     //加入到主端口列表
+                        FD_SET(newfd, &master);     //加入到主端口列表 Add to Master port list
                         if(newfd > fdmax){
-                            fdmax = newfd;      //保持fdmax为最大
+                            fdmax = newfd;      //保持fdmax为最大 Keep fdmax is max
                         }
                         sprintf(buf, "Your SocketID is: %d.last ip is:#%s#", newfd,ip_buf1);
                         send(newfd, buf, 51, 0);
@@ -83,22 +84,26 @@ int main()
                        // send(newfd, ip_buf1, 30, 0);
                        
                     }
-                }else{      //如果是已经建立的链接
+                }else{      //如果是已经建立的链接 If the connection has existed.
                     sprintf(buf, "From %2d:\n", i);
-                    if((len = recv(i, buf + 9, BUF_SIZE - 10, 0)) <= 0){    //链接断开或出错
+                    if((len = recv(i, buf + 9, BUF_SIZE - 10, 0)) <= 0){
+						//链接断开或出错 Connection is broken or eror
                         if(len == 0){
                             printf("SocketID %d has left.\n", i);
                         }else{
                             perror("The recv() got end");
                         }
                         close(i);
-                        FD_CLR(i, &master); //移除
-                    }else{      //处理得到的数据
+                        FD_CLR(i, &master); //移除 Remove
+                    }else{
+						//处理得到的数据 Process the current data
                         len += 9;
                         buf[len] = '\0';
                         printf("%s\n", buf);
                         for(j = 0; j <= fdmax; j++){
-                            if(FD_ISSET(j, &master) && j != listen_fd && j != i){   //信号j在master列表里有，发给除了发信号的和监听的所有进程
+                            if(FD_ISSET(j, &master) && j != listen_fd && j != i){
+								//信号j在master列表里有，发给除了发信号的和监听的所有进程
+								//If signal j exists in the Master port list, Send message to all process except itself.
                                 if(send(j, buf, len, 0) == -1){
                                     perror("Send() error");
                                 }
